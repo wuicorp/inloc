@@ -43,3 +43,8 @@ group :development, :test do
   gem 'spring'
 end
 
+group :test do
+  gem 'rspec-rails', '~> 3.2.2'
+  gem 'rspec-its', '~> 1.2.0'
+  gem 'shoulda-matchers', '~> 2.8.0'
+end
