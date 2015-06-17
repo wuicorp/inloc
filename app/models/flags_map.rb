@@ -7,29 +7,29 @@ class FlagsMap
 
   # Adds a flag to the map:
   #   1. Add the flag in any localization cell into the area
-  #      inside (latitude, longitude, radius).
+  #      inside (longitude, latitude, radius).
   #
-  #   2. Add in flags[:id] the indexes ("latitude:longitude") where
+  #   2. Add in flags[:id] the cells ("longitude:latitude") where
   #      the flag is added.
   #
   #   We maintain 2 hashes due to performance reasons:
-  #     a. The "indexes" hash alows us to know instantly what flags are covering
+  #     a. The "cells" hash alows us to know instantly what flags are covering
   #        some specific point in the map.
   #
-  #     b. The "flags" hash alows us to know instantly what indexes are covered
+  #     b. The "flags" hash alows us to know instantly what cells are covered
   #        by some specific flag.
   #
   #   ADVISE:
-  #     The area to cover is not rectancular to make it simpler.
+  #     The area to cover is rectangular shape to make it simpler.
   #
   # @param [Hash] params flag attributes
   # @option params [String] :id flag id
-  # @option params [String] :latitude latitude coordinate in degrees
   # @option params [String] :longitude longitude coordinate in degrees
+  # @option params [String] :latitude latitude coordinate in degrees
   # @option params [String] :radius radius area to cover en meters.
   def add_flag(params)
-    lat = params[:latitude].to_f
     lon = params[:longitude].to_f
+    lat = params[:latitude].to_f
     radius = params[:radius].to_i
 
     cells_for(lon, lat, radius) do |cell_id|
@@ -39,9 +39,9 @@ class FlagsMap
 
   # Removes a flag from the map:
   #   1. Remove the flag from the flags hash.
-  #   2. Remove the flag from all related indexes.
+  #   2. Remove the flag from all related cells.
   #
-  # @param [String] id flag to remove
+  # @param [String] flag_id flag to remove
   def remove_flag(flag_id)
     flag_cells = flags.delete(flag_id.to_s)
     return unless flag_cells
@@ -57,11 +57,11 @@ class FlagsMap
     cells[build_cell_id(lon, lat)] || []
   end
 
-  # Adds a flag id to the specified index, but also adds the index
+  # Adds a flag id to the specified cell, but also adds the cell_id
   #   in the corresponding flag.
   #
-  # @param [String] id flag to localize
-  # @param [String] index localization cell ("latitude:longitude")
+  # @param [String] flag_id flag to localize
+  # @param [String] cell_id localization cell ("longitude:latitude")
   def add_flag_to_cell(flag_id, cell_id)
     cell_flags = ((cells[cell_id] || []) << flag_id).uniq
     cells[cell_id] = cell_flags
