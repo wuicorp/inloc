@@ -71,6 +71,21 @@ class FlagsMap
   end
 
   def cells_for(longitude, latitude, radius)
+    start_lon, start_lat, end_lon, end_lat = rect(longitude, latitude, radius)
+
+    (start_lon..end_lon).step(bitx).each do |lon_cell|
+      (start_lat..end_lat).step(bity).each do |lat_cell|
+        next if lat_cell > max_latitude
+        next if lat_cell < -max_latitude
+        lon_cell -= 2 * max_longitude if lon_cell > max_longitude
+        lon_cell += 2 * max_longitude if lon_cell < -max_longitude
+
+        yield build_cell_id(lon_cell, lat_cell)
+      end
+    end
+  end
+
+  def rect(longitude, latitude, radius)
     center_lon, center_lat = cell(longitude, latitude)
 
     steps_x, steps_y = steps_from_radius(radius)
@@ -81,16 +96,7 @@ class FlagsMap
     ending_lon = start_lon + (bitx * steps_x * 2)
     ending_lat = start_lat + (bity * steps_y * 2)
 
-    (start_lon..ending_lon).step(bitx).each do |lon_cell|
-      (start_lat..ending_lat).step(bity).each do |lat_cell|
-        next if lat_cell > max_latitude
-        next if lat_cell < -max_latitude
-        lon_cell = -max_longitude + (lon_cell - max_longitude) if lon_cell > max_longitude
-        lon_cell = max_longitude + (lon_cell + max_longitude) if lon_cell < -max_longitude
-
-        yield build_cell_id(lon_cell, lat_cell)
-      end
-    end
+    [start_lon, start_lat, ending_lon, ending_lat]
   end
 
   # Calculate number of coordinate steps for a specified radius.
