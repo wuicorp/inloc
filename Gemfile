@@ -35,6 +35,8 @@ gem 'mongoid', '~> 4.0.2'
 gem 'doorkeeper-mongodb', git: 'https://github.com/doorkeeper-gem/doorkeeper-mongodb.git'
 gem 'rollbar', '~> 1.5.3'
 
+gem 'rails_12factor', group: :production
+
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
   gem 'byebug'
