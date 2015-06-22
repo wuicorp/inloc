@@ -1,5 +1,5 @@
 GIT
-  remote: git@github.com:doorkeeper-gem/doorkeeper-mongodb.git
+  remote: https://github.com/doorkeeper-gem/doorkeeper-mongodb.git
   revision: 468678e77a709e51fe1812815b5f6256fff64172
   specs:
     doorkeeper-mongodb (3.0.0)
