@@ -31,6 +31,7 @@ gem 'sdoc', '~> 0.4.0', group: :doc
 # gem 'capistrano-rails', group: :development
 
 gem 'mongoid', '~> 4.0.2'
+gem 'doorkeeper-mongodb', git: 'https://github.com/doorkeeper-gem/doorkeeper-mongodb.git'
 
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
