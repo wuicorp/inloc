@@ -31,6 +31,7 @@ gem 'sdoc', '~> 0.4.0', group: :doc
 # Use Capistrano for deployment
 # gem 'capistrano-rails', group: :development
 
+gem 'puma', '~> 2.11.3'
 gem 'mongoid', '~> 4.0.2'
 gem 'doorkeeper-mongodb', git: 'https://github.com/doorkeeper-gem/doorkeeper-mongodb.git'
 gem 'rollbar', '~> 1.5.3'
