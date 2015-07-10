@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 describe FlagsMap do
-  let(:map) { described_class.find_or_create_by(app_key: 'foo') }
+  let(:map) { described_class.find_or_create_by(application_id: 'foo') }
 
   describe '#add_flag' do
     let(:flag_id) { '1' }
@@ -28,12 +28,45 @@ describe FlagsMap do
     end
 
     it 'adds expected flags' do
-      expect(map.flags['1'])
+      expect(map.flags[flag_id])
         .to eq ["-0,000045:-0,0000425", "-0,000045:0,0",
                 "-0,000045:0,0000425", "0,0:-0,0000425",
                 "0,0:0,0", "0,0:0,0000425",
                 "0,000045:-0,0000425", "0,000045:0,0",
                 "0,000045:0,0000425"]
+    end
+
+    context 'with existing flag' do
+      before { map.add_flag(params.merge(longitude: '0.1')) }
+
+      it 'updates the existing flag' do
+        expect(map.flags[flag_id])
+          .to eq ["0,099945:-0,0000425", "0,099945:0,0",
+                  "0,099945:0,0000425", "0,09999:-0,0000425",
+                  "0,09999:0,0", "0,09999:0,0000425",
+                  "0,100035:-0,0000425", "0,100035:0,0",
+                  "0,100035:0,0000425"]
+      end
+    end
+
+    context 'with invalid attributes' do
+      let(:longitude) { 'xxx' }
+      let(:latitude) { 'xxx' }
+      let(:radius) { 'xxx' }
+
+      subject { map }
+
+      it { is_expected.to_not be_valid }
+
+      it 'does not save the flag' do
+        expect(subject.save).to be false
+      end
+
+      it 'includes fields errors' do
+        expect(subject.errors.messages).to include :longitude
+        expect(subject.errors.messages).to include :latitude
+        expect(subject.errors.messages).to include :radius
+      end
     end
   end
 

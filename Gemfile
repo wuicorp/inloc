@@ -4,6 +4,8 @@ ruby '2.2.0'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 gem 'rails', '4.2.1'
+gem 'responders', '~> 2.0'
+
 # Use SCSS for stylesheets
 gem 'sass-rails', '~> 5.0'
 # Use Uglifier as compressor for JavaScript assets
@@ -53,4 +55,6 @@ group :test do
   gem 'rspec-rails', '~> 3.2.2'
   gem 'rspec-its', '~> 1.2.0'
   gem 'shoulda-matchers', '~> 2.8.0'
+  gem 'factory_girl', '~> 4.5.0'
+  gem 'database_cleaner', '~> 1.4.1'
 end

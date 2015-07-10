@@ -1,9 +1,19 @@
 class FlagsMap
   include Mongoid::Document
 
-  field :app_key, type: String
+  field :application_id, type: String
   field :cells, type: Hash, default: {}
   field :flags, type: Hash, default: {}
+
+  # These fields are the attributes of the last flag added
+  field :id, type: String
+  field :longitude, type: Float
+  field :latitude, type: Float
+  field :radius, type: Integer
+
+  validates_numericality_of :longitude
+  validates_numericality_of :latitude
+  validates_numericality_of :radius
 
   # Adds a flag to the map:
   #   1. Add the flag in any localization cell into the area
@@ -19,8 +29,9 @@ class FlagsMap
   #     b. The "flags" hash alows us to know instantly what cells are covered
   #        by some specific flag.
   #
-  #   ADVISE:
-  #     The area to cover is rectangular shape to make it simpler.
+  #   ADVISES:
+  #     1. The area to cover is rectangular shape to make it simpler.
+  #     2. If the flag exists it updates the corresponding area.
   #
   # @param [Hash] params flag attributes
   # @option params [String] :id flag id
@@ -28,13 +39,25 @@ class FlagsMap
   # @option params [String] :latitude latitude coordinate in degrees
   # @option params [String] :radius radius area to cover en meters.
   def add_flag(params)
+    self.attributes = params
+    return false unless valid?
+
+    flag_id = params[:id]
+    remove_flag(flag_id) if flag_exist?(flag_id)
+
     lon = params[:longitude].to_f
     lat = params[:latitude].to_f
     radius = params[:radius].to_i
 
     cells_for(lon, lat, radius) do |cell_id|
-      add_flag_to_cell(params[:id].to_s, cell_id)
+      add_flag_to_cell(flag_id.to_s, cell_id)
     end
+
+    true
+  end
+
+  def flag_exist?(id)
+    flags[id] ? true : false
   end
 
   # Removes a flag from the map:
