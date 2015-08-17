@@ -62,4 +62,33 @@ describe 'Flags API', type: :request do
       end
     end
   end
+
+  describe 'DELETE /flag/:id' do
+    let(:flag_id) { 'flag_id' }
+    let(:flags_map) { FlagsMap.find_or_create_by(application_id: access_token.application_id) }
+
+    before { delete "/api/v1/flags/#{flag_id}", {}, auth_headers }
+
+    context 'with existing flag' do
+      let(:flags_map) do
+        FlagsMap.find_or_create_by(application_id: access_token.application_id)
+      end
+
+      context 'with existing flag' do
+        before do
+          flags_map.add_flag(id: flag_id, longitude: '0.0', latitude: '0.0', radius: '5')  
+        end
+
+        it 'respond with 200' do
+          expect(response).to be_success
+        end
+      end
+
+      context 'with unexisting flag' do
+        it 'responds with 200' do
+          expect(response).to be_success
+        end
+      end
+    end
+  end
 end

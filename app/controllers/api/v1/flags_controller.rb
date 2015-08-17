@@ -10,6 +10,11 @@ module Api
         end
       end
 
+      def destroy
+        flags_map.remove_flag(params[:id])
+        render json: {}, status: 200
+      end
+
       private
 
       def flags_map
