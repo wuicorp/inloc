@@ -5,7 +5,64 @@ describe 'Flags API', type: :request do
   let(:token) { access_token.token }
   let(:auth_headers) { { authorization: "Bearer #{token}" } }
 
-  let(:response_body) { JSON.parse(response.body).symbolize_keys }
+  let(:response_body) { JSON.parse(response.body) }
+
+  describe 'GET /flags' do
+    let(:flag1) do
+      { id: '1',
+        longitude: '0.0',
+        latitude: '0.0',
+        radius: '5' }
+    end
+
+    let(:flag2) do
+      { id: '2',
+        longitude: '0.000045',
+        latitude: '0.0',
+        radius: '5' }
+    end
+
+    let(:flag3) do
+      { id: '3',
+        longitude: '0.001',
+        latitude: '0.0',
+        radius: '5' }
+    end
+
+    let(:flags_map) do
+      FlagsMap.find_or_create_by(application_id: access_token.application_id)
+    end
+
+    before do
+      flags_map.tap do |m|
+        m.add_flag(flag1)
+        m.add_flag(flag2)
+        m.add_flag(flag3)
+      end.save!
+
+      get('/api/v1/flags', params, auth_headers)
+    end
+
+    context 'with valid parameters' do
+      let(:params) { { longitude: '0.0', latitude: '0.0' } }
+
+      it 'responds with 200' do
+        expect(response.status).to be 200
+      end
+
+      it 'responds with the right flags' do
+        expect(response_body).to eq [flag1[:id], flag2[:id]]
+      end
+    end
+
+    context 'with missing parameter' do
+      let(:params) { { latitude: '0.0' } }
+
+      it 'responds with 422' do
+        expect(response.status).to be 422
+      end
+    end
+  end
 
   describe 'POST /flags' do
     let(:flag_id) { 'flag-id' }
@@ -32,7 +89,7 @@ describe 'Flags API', type: :request do
       end
 
       it 'responds with flag attributes' do
-        expect(response_body).to eq params
+        expect(response_body).to eq params.stringify_keys
       end
 
       it 'adds the flag' do
@@ -58,12 +115,12 @@ describe 'Flags API', type: :request do
       end
 
       it 'responds with errored fields' do
-        expect(response_body[:errors]).to include 'longitude'
+        expect(response_body['errors']).to include 'longitude'
       end
     end
   end
 
-  describe 'DELETE /flag/:id' do
+  describe 'DELETE /flags/:id' do
     let(:flag_id) { 'flag_id' }
     let(:flags_map) { FlagsMap.find_or_create_by(application_id: access_token.application_id) }
 
@@ -76,7 +133,7 @@ describe 'Flags API', type: :request do
 
       context 'with existing flag' do
         before do
-          flags_map.add_flag(id: flag_id, longitude: '0.0', latitude: '0.0', radius: '5')  
+          flags_map.add_flag(id: flag_id, longitude: '0.0', latitude: '0.0', radius: '5')
         end
 
         it 'respond with 200' do
