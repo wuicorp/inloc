@@ -19,33 +19,26 @@ describe FlagsMap do
     before { map.add_flag(params) }
 
     it 'adds expected cells' do
-      expect(map.cells)
-        .to eq("-0,000045:-0,0000425"=>["1"], "-0,000045:0,0"=>["1"],
-               "-0,000045:0,0000425"=>["1"], "0,0:-0,0000425"=>["1"],
-               "0,0:0,0"=>["1"], "0,0:0,0000425"=>["1"],
-               "0,000045:-0,0000425"=>["1"], "0,000045:0,0"=>["1"],
-               "0,000045:0,0000425"=>["1"])
+      expect(Flag.find_by(id: flag_id).cells.pluck(:longitude))
+        .to eq ['-0.000045', '-0.000045', '-0.000045', '0.0',
+                '0.0', '0.0', '0.000045', '0.000045', '0.000045']
+
+      expect(Flag.find_by(id: flag_id).cells.pluck(:latitude))
+        .to eq ['-0.0000425', '0.0', '0.0000425', '-0.0000425',
+                '0.0', '0.0000425', '-0.0000425', '0.0', '0.0000425']
     end
 
-    it 'adds expected flags' do
-      expect(map.flags[flag_id])
-        .to eq ["-0,000045:-0,0000425", "-0,000045:0,0",
-                "-0,000045:0,0000425", "0,0:-0,0000425",
-                "0,0:0,0", "0,0:0,0000425",
-                "0,000045:-0,0000425", "0,000045:0,0",
-                "0,000045:0,0000425"]
+    it 'adds expected flag' do
+      expect(map.flags.find_by(id: flag_id)).to_not be_nil
     end
 
     context 'with existing flag' do
       before { map.add_flag(params.merge(longitude: '0.1')) }
 
       it 'updates the existing flag' do
-        expect(map.flags[flag_id])
-          .to eq ["0,099945:-0,0000425", "0,099945:0,0",
-                  "0,099945:0,0000425", "0,09999:-0,0000425",
-                  "0,09999:0,0", "0,09999:0,0000425",
-                  "0,100035:-0,0000425", "0,100035:0,0",
-                  "0,100035:0,0000425"]
+        expect(Flag.find_by(id: flag_id).cells.pluck(:longitude))
+          .to eq ['0.099945', '0.099945', '0.099945', '0.09999', '0.09999',
+                  '0.09999', '0.100035', '0.100035', '0.100035']
       end
     end
 
@@ -71,73 +64,55 @@ describe FlagsMap do
   end
 
   describe '#remove_flag' do
-    let(:flag_id) { 'flag-id' }
-    let(:cell_id) { 'cell-id' }
-
-    before do
-      map.flags[flag_id] = [cell_id]
-      map.cells[cell_id] = [flag_id]
+    let(:cell) do
+      Cell.create(longitude: '0.0', latitude: '0.0')
     end
 
-    subject { map.tap { |m| m.remove_flag(flag_id) } }
+    let(:flag) { Flag.create(id: 'flag-id', flags_map: map, cells: [cell]) }
+
+    subject { map.tap { |m| m.remove_flag(flag.id) } }
 
     it 'removes the flag from flags' do
-      expect(subject.flags[flag_id]).to be_nil
+      expect(subject.flags.find_by(id: flag.id)).to be_nil
+    end
+
+    it 'removes the flag' do
+      subject
+      expect(Flag.find_by(id: flag.id)).to be_nil
     end
 
     context 'having just the flag in the cell' do
       it 'removes the cell' do
-        expect(subject.cells[cell_id]).to be_nil
+        subject
+        expect(Cell.find_by(id: cell.id)).to be_nil
       end
     end
 
     context 'having other flags in the cell' do
-      let(:other_flag_id) { 'other-flag-id' }
+      let(:other_flag) { Flag.create(id: 'other-flag-id', flags_map: map, cells: [cell]) }
 
-      before { map.cells[cell_id] << other_flag_id }
+      before { map.tap { |m| m.flags << other_flag }.save }
 
       it 'removes the flags from the cell' do
-        expect(subject.cells[cell_id]).to eq [other_flag_id]
+        subject
+        expect(cell.reload.flags).to eq [other_flag]
       end
     end
   end
 
   describe '#find_flags_by_position' do
-    let(:flags) { ['1', '2'] }
+    let(:flags) do
+      [Flag.create(id: '1', flags_map: map),
+       Flag.create(id: '2', flags_map: map)]
+    end
 
     before do
-      map.cells['0,0:0,0'] = flags
+      Cell.create(longitude: 0.0, latitude: 0.0, flags: flags)
     end
 
     subject { map.find_flags_by_position(0.0, 0.0) }
 
-    it { is_expected.to be flags }
-  end
-
-  describe '#add_flag_to_cell' do
-    let(:cell_id1) { 'cell-id1' }
-    let(:flag_id1) { 'flag-id1' }
-    let(:cell_id2) { 'cell-id2' }
-    let(:flag_id2) { 'flag-id2' }
-
-    before do
-      map.tap do |m|
-        m.add_flag_to_cell(flag_id1, cell_id1)
-        m.add_flag_to_cell(flag_id1, cell_id2)
-        m.add_flag_to_cell(flag_id2, cell_id1)
-        m.add_flag_to_cell(flag_id2, cell_id2)
-      end
-    end
-
-    it 'adds the flag to the cell' do
-      expect(map.cells[cell_id1]).to eq [flag_id1, flag_id2]
-      expect(map.cells[cell_id2]).to eq [flag_id1, flag_id2]
-    end
-
-    it 'adds the cell to the flag' do
-      expect(map.flags[flag_id1]).to eq [cell_id1, cell_id2]
-      expect(map.flags[flag_id2]).to eq [cell_id1, cell_id2]
-    end
+    it { is_expected.to eq flags }
   end
 
   describe '#cells_for' do
@@ -146,7 +121,7 @@ describe FlagsMap do
     subject do
       [].tap do |cells|
         map.cells_for(latitude, longitude, radius) { |id| cells << id }
-      end
+      end.map { |cell| "#{cell.longitude}:#{cell.latitude}" }
     end
 
     context 'on the midle of earth surface' do
@@ -155,18 +130,18 @@ describe FlagsMap do
 
       it do
         is_expected
-          .to eq ["-0,00009:-0,000085", "-0,00009:-0,0000425",
-                  "-0,00009:0,0", "-0,00009:0,0000425",
-                  "-0,00009:0,000085", "-0,000045:-0,000085",
-                  "-0,000045:-0,0000425", "-0,000045:0,0",
-                  "-0,000045:0,0000425", "-0,000045:0,000085",
-                  "0,0:-0,000085", "0,0:-0,0000425",
-                  "0,0:0,0", "0,0:0,0000425",
-                  "0,0:0,000085", "0,000045:-0,000085",
-                  "0,000045:-0,0000425", "0,000045:0,0",
-                  "0,000045:0,0000425", "0,000045:0,000085",
-                  "0,00009:-0,000085", "0,00009:-0,0000425",
-                  "0,00009:0,0", "0,00009:0,0000425", "0,00009:0,000085"]
+          .to eq ["-0.00009:-0.000085", "-0.00009:-0.0000425",
+                  "-0.00009:0.0", "-0.00009:0.0000425",
+                  "-0.00009:0.000085", "-0.000045:-0.000085",
+                  "-0.000045:-0.0000425", "-0.000045:0.0",
+                  "-0.000045:0.0000425", "-0.000045:0.000085",
+                  "0.0:-0.000085", "0.0:-0.0000425",
+                  "0.0:0.0", "0.0:0.0000425",
+                  "0.0:0.000085", "0.000045:-0.000085",
+                  "0.000045:-0.0000425", "0.000045:0.0",
+                  "0.000045:0.0000425", "0.000045:0.000085",
+                  "0.00009:-0.000085", "0.00009:-0.0000425",
+                  "0.00009:0.0", "0.00009:0.0000425", "0.00009:0.000085"]
       end
     end
 
@@ -176,14 +151,14 @@ describe FlagsMap do
 
       it do
         is_expected
-          .to eq ["-0,00009:84,999915", "-0,00009:84,9999575",
-                  "-0,00009:85,0", "-0,000045:84,999915",
-                  "-0,000045:84,9999575", "-0,000045:85,0",
-                  "0,0:84,999915", "0,0:84,9999575",
-                  "0,0:85,0", "0,000045:84,999915",
-                  "0,000045:84,9999575", "0,000045:85,0",
-                  "0,00009:84,999915", "0,00009:84,9999575",
-                  "0,00009:85,0"]
+          .to eq ["-0.00009:84.999915", "-0.00009:84.9999575",
+                  "-0.00009:85.0", "-0.000045:84.999915",
+                  "-0.000045:84.9999575", "-0.000045:85.0",
+                  "0.0:84.999915", "0.0:84.9999575",
+                  "0.0:85.0", "0.000045:84.999915",
+                  "0.000045:84.9999575", "0.000045:85.0",
+                  "0.00009:84.999915", "0.00009:84.9999575",
+                  "0.00009:85.0"]
       end
     end
 
@@ -193,14 +168,14 @@ describe FlagsMap do
 
       it do
         is_expected
-          .to eq ["-0,00009:-85,0", "-0,00009:-84,9999575",
-                  "-0,00009:-84,999915", "-0,000045:-85,0",
-                  "-0,000045:-84,9999575", "-0,000045:-84,999915",
-                  "0,0:-85,0", "0,0:-84,9999575",
-                  "0,0:-84,999915", "0,000045:-85,0",
-                  "0,000045:-84,9999575", "0,000045:-84,999915",
-                  "0,00009:-85,0", "0,00009:-84,9999575",
-                  "0,00009:-84,999915"]
+          .to eq ["-0.00009:-85.0", "-0.00009:-84.9999575",
+                  "-0.00009:-84.999915", "-0.000045:-85.0",
+                  "-0.000045:-84.9999575", "-0.000045:-84.999915",
+                  "0.0:-85.0", "0.0:-84.9999575",
+                  "0.0:-84.999915", "0.000045:-85.0",
+                  "0.000045:-84.9999575", "0.000045:-84.999915",
+                  "0.00009:-85.0", "0.00009:-84.9999575",
+                  "0.00009:-84.999915"]
       end
     end
 
@@ -210,19 +185,19 @@ describe FlagsMap do
 
       it do
         is_expected
-          .to eq ["179,99991:-0,000085", "179,99991:-0,0000425",
-                  "179,99991:0,0", "179,99991:0,0000425",
-                  "179,99991:0,000085", "179,999955:-0,000085",
-                  "179,999955:-0,0000425", "179,999955:0,0",
-                  "179,999955:0,0000425", "179,999955:0,000085",
-                  "180,0:-0,000085", "180,0:-0,0000425",
-                  "180,0:0,0", "180,0:0,0000425",
-                  "180,0:0,000085", "-179,999955:-0,000085",
-                  "-179,999955:-0,0000425", "-179,999955:0,0",
-                  "-179,999955:0,0000425", "-179,999955:0,000085",
-                  "-179,99991:-0,000085", "-179,99991:-0,0000425",
-                  "-179,99991:0,0", "-179,99991:0,0000425",
-                  "-179,99991:0,000085"]
+          .to eq ["179.99991:-0.000085", "179.99991:-0.0000425",
+                  "179.99991:0.0", "179.99991:0.0000425",
+                  "179.99991:0.000085", "179.999955:-0.000085",
+                  "179.999955:-0.0000425", "179.999955:0.0",
+                  "179.999955:0.0000425", "179.999955:0.000085",
+                  "180.0:-0.000085", "180.0:-0.0000425",
+                  "180.0:0.0", "180.0:0.0000425",
+                  "180.0:0.000085", "-179.999955:-0.000085",
+                  "-179.999955:-0.0000425", "-179.999955:0.0",
+                  "-179.999955:0.0000425", "-179.999955:0.000085",
+                  "-179.99991:-0.000085", "-179.99991:-0.0000425",
+                  "-179.99991:0.0", "-179.99991:0.0000425",
+                  "-179.99991:0.000085"]
       end
     end
 
@@ -232,19 +207,19 @@ describe FlagsMap do
 
       it do
         is_expected
-          .to eq ["179,99991:-0,000085", "179,99991:-0,0000425",
-                  "179,99991:0,0", "179,99991:0,0000425",
-                  "179,99991:0,000085", "179,999955:-0,000085",
-                  "179,999955:-0,0000425", "179,999955:0,0",
-                  "179,999955:0,0000425", "179,999955:0,000085",
-                  "-180,0:-0,000085", "-180,0:-0,0000425",
-                  "-180,0:0,0", "-180,0:0,0000425",
-                  "-180,0:0,000085", "-179,999955:-0,000085",
-                  "-179,999955:-0,0000425", "-179,999955:0,0",
-                  "-179,999955:0,0000425", "-179,999955:0,000085",
-                  "-179,99991:-0,000085", "-179,99991:-0,0000425",
-                  "-179,99991:0,0", "-179,99991:0,0000425",
-                  "-179,99991:0,000085"]
+          .to eq ["179.99991:-0.000085", "179.99991:-0.0000425",
+                  "179.99991:0.0", "179.99991:0.0000425",
+                  "179.99991:0.000085", "179.999955:-0.000085",
+                  "179.999955:-0.0000425", "179.999955:0.0",
+                  "179.999955:0.0000425", "179.999955:0.000085",
+                  "-180.0:-0.000085", "-180.0:-0.0000425",
+                  "-180.0:0.0", "-180.0:0.0000425",
+                  "-180.0:0.000085", "-179.999955:-0.000085",
+                  "-179.999955:-0.0000425", "-179.999955:0.0",
+                  "-179.999955:0.0000425", "-179.999955:0.000085",
+                  "-179.99991:-0.000085", "-179.99991:-0.0000425",
+                  "-179.99991:0.0", "-179.99991:0.0000425",
+                  "-179.99991:0.000085"]
       end
     end
   end
@@ -252,28 +227,5 @@ describe FlagsMap do
   describe '#steps_from_radius' do
     subject { map.steps_from_radius(100) }
     it { is_expected.to eq [20, 21] }
-  end
-
-  describe '#build_cell_id' do
-    subject { map.build_cell_id(0.0001, 0.0002) }
-    it { is_expected.to eq '0,0001:0,0002' }
-  end
-
-  describe '#cell' do
-    subject { map.cell(latitude, longitude) }
-
-    context 'with positive coordinates' do
-      let(:latitude) { 0.00005 }
-      let(:longitude) { 0.00005 }
-
-      it { is_expected.to eq [map.bitx, map.bity] }
-    end
-
-    context 'with negative coordinates' do
-      let(:latitude) { -0.00005 }
-      let(:longitude) { -0.00005 }
-
-      it { is_expected.to eq [-map.bitx, -map.bity] }
-    end
   end
 end

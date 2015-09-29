@@ -51,7 +51,9 @@ describe 'Flags API', type: :request do
       end
 
       it 'responds with the right flags' do
-        expect(response_body).to eq [flag1[:id], flag2[:id]]
+        expect(response_body['data'])
+          .to eq [{ 'type' => 'flags', 'id' => flag1[:id] },
+                  { 'type' => 'flags', 'id' => flag2[:id] }]
       end
     end
 
@@ -78,7 +80,10 @@ describe 'Flags API', type: :request do
     end
 
     let(:flags_map) do
-      FlagsMap.find_by(application_id: access_token.application_id)
+      FlagsMap.find_by(application_id: access_token.application_id).tap do |m|
+        m.add_flag(params.merge(id: 'whatever'))
+        m.save
+      end
     end
 
     before { post '/api/v1/flags', params, auth_headers }
@@ -93,7 +98,7 @@ describe 'Flags API', type: :request do
       end
 
       it 'adds the flag' do
-        expect(flags_map.reload.flags).to include flag_id
+        expect(flags_map.reload.flags.pluck(:id)).to include flag_id
       end
     end
 
@@ -122,9 +127,8 @@ describe 'Flags API', type: :request do
 
   describe 'DELETE /flags/:id' do
     let(:flag_id) { 'flag_id' }
-    let(:flags_map) { FlagsMap.find_or_create_by(application_id: access_token.application_id) }
 
-    before { delete "/api/v1/flags/#{flag_id}", {}, auth_headers }
+    subject { delete "/api/v1/flags/#{flag_id}", {}, auth_headers }
 
     context 'with existing flag' do
       let(:flags_map) do
@@ -133,17 +137,23 @@ describe 'Flags API', type: :request do
 
       context 'with existing flag' do
         before do
-          flags_map.add_flag(id: flag_id, longitude: '0.0', latitude: '0.0', radius: '5')
+          flags_map.add_flag(id: flag_id,
+                             longitude: '0.0',
+                             latitude: '0.0',
+                             radius: '5')
+          flags_map.save
         end
 
         it 'respond with 200' do
-          expect(response).to be_success
+          subject
+          expect(response.status).to be 200
         end
       end
 
       context 'with unexisting flag' do
-        it 'responds with 200' do
-          expect(response).to be_success
+        it 'responds with 404' do
+          subject
+          expect(response.status).to be 404
         end
       end
     end

@@ -3,7 +3,8 @@ module Api
     class FlagsController < ApiController
       def index
         with_valid_search_parameters do |longitude, latitude|
-          render json: flags_map.find_flags_by_position(longitude, latitude),
+          flags = flags_map.find_flags_by_position(longitude, latitude)
+          render json: { data: flags },
                  status: 200
         end
       end
@@ -18,8 +19,11 @@ module Api
       end
 
       def destroy
-        flags_map.remove_flag(params[:id])
-        render json: {}, status: 200
+        if flags_map.remove_flag(params[:id])
+          render json: {}, status: 200
+        else
+          render json: { detail: 'not found' }, status: 404
+        end
       end
 
       private

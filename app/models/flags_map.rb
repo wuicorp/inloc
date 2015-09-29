@@ -1,35 +1,18 @@
 class FlagsMap
   include Mongoid::Document
 
-  field :application_id, type: String
-  field :cells, type: Hash, default: {}
-  field :flags, type: Hash, default: {}
+  attr_accessor :longitude, :latitude, :radius
 
-  # These fields are the attributes of the last flag added
-  field :id, type: String
-  field :longitude, type: Float
-  field :latitude, type: Float
-  field :radius, type: Integer
+  field :application_id, type: String
+  has_many :flags
 
   validates_numericality_of :longitude
   validates_numericality_of :latitude
   validates_numericality_of :radius
 
   # Adds a flag to the map:
-  #   1. Add the flag in any localization cell into the area
-  #      inside (longitude, latitude, radius).
   #
-  #   2. Add in flags[:id] the cells ("longitude:latitude") where
-  #      the flag is added.
-  #
-  #   We maintain 2 hashes due to performance reasons:
-  #     a. The "cells" hash alows us to know instantly what flags are covering
-  #        some specific point in the map.
-  #
-  #     b. The "flags" hash alows us to know instantly what cells are covered
-  #        by some specific flag.
-  #
-  #   ADVISES:
+  #   NOTE:
   #     1. The area to cover is rectangular shape to make it simpler.
   #     2. If the flag exists it updates the corresponding area.
   #
@@ -39,7 +22,7 @@ class FlagsMap
   # @option params [String] :latitude latitude coordinate in degrees
   # @option params [String] :radius radius area to cover en meters.
   def add_flag(params)
-    self.attributes = params
+    self.attributes = params.slice(:longitude, :latitude, :radius)
     return false unless valid?
 
     flag_id = params[:id]
@@ -49,48 +32,31 @@ class FlagsMap
     lat = params[:latitude].to_f
     radius = params[:radius].to_i
 
-    cells_for(lon, lat, radius) do |cell_id|
-      add_flag_to_cell(flag_id.to_s, cell_id)
+    cells_for(lon, lat, radius) do |cell|
+      add_flag_to_cell(flag_id.to_s, cell)
     end
-
     true
   end
 
   def flag_exist?(id)
-    flags[id] ? true : false
+    flags.where(id: id).exists? ? true : false
   end
 
-  # Removes a flag from the map:
-  #   1. Remove the flag from the flags hash.
-  #   2. Remove the flag from all related cells.
-  #
-  # @param [String] flag_id flag to remove
   def remove_flag(flag_id)
-    flag_cells = flags.delete(flag_id.to_s)
-    return unless flag_cells
-
-    flag_cells.each do |cell_id|
-      cells[cell_id].delete(flag_id.to_s)
-      cells.delete(cell_id) if cells[cell_id].empty?
-    end
+    flag = flags.find_by(id: flag_id)
+    return unless flag
+    flag.destroy
   end
 
   def find_flags_by_position(longitude, latitude)
-    lon, lat = cell(longitude.to_f, latitude.to_f)
-    cells[build_cell_id(lon, lat)] || []
+    lon, lat = cell_point(longitude.to_f, latitude.to_f)
+
+    cell = Cell.find_by(longitude: lon, latitude: lat)
+    cell.flags if cell
   end
 
-  # Adds a flag id to the specified cell, but also adds the cell_id
-  #   in the corresponding flag.
-  #
-  # @param [String] flag_id flag to localize
-  # @param [String] cell_id localization cell ("longitude:latitude")
-  def add_flag_to_cell(flag_id, cell_id)
-    cell_flags = ((cells[cell_id] || []) << flag_id).uniq
-    cells[cell_id] = cell_flags
-
-    flag_cells = ((flags[flag_id] || []) << cell_id).uniq
-    flags[flag_id] = flag_cells
+  def add_flag_to_cell(flag_id, cell)
+    cell.find_or_create_flag_by(id: flag_id, flags_map: self)
   end
 
   def cells_for(longitude, latitude, radius)
@@ -103,13 +69,13 @@ class FlagsMap
         lon_cell -= 2 * max_longitude if lon_cell > max_longitude
         lon_cell += 2 * max_longitude if lon_cell < -max_longitude
 
-        yield build_cell_id(lon_cell, lat_cell)
+        yield Cell.find_or_create_by(longitude: lon_cell, latitude: lat_cell)
       end
     end
   end
 
   def rect(longitude, latitude, radius)
-    center_lon, center_lat = cell(longitude, latitude)
+    center_lon, center_lat = cell_point(longitude, latitude)
 
     steps_x, steps_y = steps_from_radius(radius)
 
@@ -134,13 +100,7 @@ class FlagsMap
     [steps_x, steps_y]
   end
 
-  def build_cell_id(longitude, latitude)
-    lon_index = longitude.to_s.sub('.', ',')
-    lat_index = latitude.to_s.sub('.', ',')
-    "#{lon_index}:#{lat_index}"
-  end
-
-  def cell(longitude, latitude)
+  def cell_point(longitude, latitude)
     lon = (longitude / bitx).to_i * bitx
     lat = (latitude / bity).to_i * bity
     [lon, lat]
