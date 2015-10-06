@@ -51,9 +51,9 @@ describe 'Flags API', type: :request do
       end
 
       it 'responds with the right flags' do
-        expect(response_body['data'])
-          .to eq [{ 'type' => 'flags', 'id' => flag1[:id] },
-                  { 'type' => 'flags', 'id' => flag2[:id] }]
+        expect(response_body)
+          .to eq('data' => [{ 'type' => 'flags', 'id' => flag1[:id] },
+                            { 'type' => 'flags', 'id' => flag2[:id] }])
       end
     end
 

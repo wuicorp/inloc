@@ -13,9 +13,4 @@ class Flag
       cell.destroy if cell.flags.count == 1
     end
   end
-
-  def as_json(_)
-    { type: :flags,
-      id: id }
-  end
 end

@@ -4,7 +4,7 @@ module Api
       def index
         with_valid_search_parameters do |longitude, latitude|
           flags = flags_map.find_flags_by_position(longitude, latitude)
-          render json: { data: flags },
+          render json: flags,
                  status: 200
         end
       end
