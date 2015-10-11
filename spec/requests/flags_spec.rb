@@ -9,37 +9,38 @@ describe 'Flags API', type: :request do
 
   describe 'GET /flags' do
     let(:flag1) do
-      { id: '1',
+      Flag.create(
+        application_id: access_token.application_id,
+        code: '1',
         longitude: '0.0',
         latitude: '0.0',
-        radius: '5' }
+        radius: '5'
+      )
     end
 
     let(:flag2) do
-      { id: '2',
+      Flag.create(
+        application_id: access_token.application_id,
+        code: '2',
         longitude: '0.000045',
         latitude: '0.0',
-        radius: '5' }
+        radius: '5'
+      )
     end
 
     let(:flag3) do
-      { id: '3',
+      Flag.create(
+        application_id: access_token.application_id,
         longitude: '0.001',
         latitude: '0.0',
-        radius: '5' }
-    end
-
-    let(:flags_map) do
-      FlagsMap.find_or_create_by(application_id: access_token.application_id)
+        radius: '5'
+      )
     end
 
     before do
-      flags_map.tap do |m|
-        m.add_flag(flag1)
-        m.add_flag(flag2)
-        m.add_flag(flag3)
-      end.save!
-
+      flag1
+      flag2
+      flag3
       get('/api/v1/flags', params, auth_headers)
     end
 
@@ -52,8 +53,26 @@ describe 'Flags API', type: :request do
 
       it 'responds with the right flags' do
         expect(response_body)
-          .to eq('data' => [{ 'type' => 'flags', 'id' => flag1[:id] },
-                            { 'type' => 'flags', 'id' => flag2[:id] }])
+          .to eq('data' => [
+                   { 'id' => flag1.id.to_s,
+                     'type' => 'flags',
+                     'attributes' => {
+                       'code' => flag1.code,
+                       'longitude' => flag1.longitude.to_s,
+                       'latitude' => flag1.latitude.to_s,
+                       'radius' => flag1.radius
+                     }
+                   },
+                   { 'id' => flag2.id.to_s,
+                     'type' => 'flags',
+                     'attributes' => {
+                       'code' => flag2.code,
+                       'longitude' => flag2.longitude.to_s,
+                       'latitude' => flag2.latitude.to_s,
+                       'radius' => flag2.radius
+                     }
+                   }
+                 ])
       end
     end
 
@@ -61,44 +80,39 @@ describe 'Flags API', type: :request do
       let(:params) { { latitude: '0.0' } }
 
       it 'responds with 422' do
-        expect(response.status).to be 422
+        expect(response.status).to eq 422
       end
     end
   end
 
   describe 'POST /flags' do
-    let(:flag_id) { 'flag-id' }
+    let(:code) { 'flag-code' }
     let(:longitude) { '0.0' }
     let(:latitude) { '0.0' }
-    let(:radius) { '10' }
+    let(:radius) { 10 }
 
     let(:params) do
-      { id: flag_id,
+      { code: code,
         longitude: longitude,
         latitude: latitude,
         radius: radius }
     end
 
-    let(:flags_map) do
-      FlagsMap.find_by(application_id: access_token.application_id).tap do |m|
-        m.add_flag(params.merge(id: 'whatever'))
-        m.save
-      end
-    end
-
-    before { post '/api/v1/flags', params, auth_headers }
+    subject { post '/api/v1/flags', params, auth_headers }
 
     shared_examples 'adds the flag' do
+      before { subject }
+
       it 'responds with 201' do
-        expect(response).to be_success
+        expect(response.status).to eq 201
       end
 
       it 'responds with flag attributes' do
-        expect(response_body).to eq params.stringify_keys
+        expect(response_body['data']['attributes']).to eq params.stringify_keys
       end
 
       it 'adds the flag' do
-        expect(flags_map.reload.flags.pluck(:id)).to include flag_id
+        expect(Flag.last.code).to eq code
       end
     end
 
@@ -107,28 +121,43 @@ describe 'Flags API', type: :request do
     end
 
     context 'with existing flag' do
-      before { flags_map.add_flag(params) }
+      before do
+        Flag.create(params.merge(application_id: access_token.application_id))
+        subject
+      end
 
-      it_behaves_like 'adds the flag'
+      it 'respond with 422' do
+        expect(response.status).to eq 422
+      end
+
+      it 'responds with errored fields' do
+        expect(response_body['errors'])
+          .to eq([{ 'id' => 'code',
+                    'title' => 'Code is already taken' }])
+      end
     end
 
     context 'with invalid attributes' do
       let(:longitude) { 'aaa' }
 
+      before { subject }
+      
       it 'respond with 422' do
-        expect(response).to be_unprocessable
+        expect(response.status).to eq 422
       end
 
       it 'responds with errored fields' do
-        expect(response_body['errors']).to include 'longitude'
+        expect(response_body['errors'])
+          .to eq([{ 'id' => 'longitude',
+                    'title' => 'Longitude is not a number' }])
       end
     end
   end
 
   describe 'DELETE /flags/:id' do
-    let(:flag_id) { 'flag_id' }
+    let(:code) { 'flag-code' }
 
-    subject { delete "/api/v1/flags/#{flag_id}", {}, auth_headers }
+    subject { delete "/api/v1/flags/#{code}", {}, auth_headers }
 
     context 'with existing flag' do
       let(:flags_map) do
@@ -137,11 +166,11 @@ describe 'Flags API', type: :request do
 
       context 'with existing flag' do
         before do
-          flags_map.add_flag(id: flag_id,
-                             longitude: '0.0',
-                             latitude: '0.0',
-                             radius: '5')
-          flags_map.save
+          Flag.create(application_id: access_token.application_id,
+                      code: code,
+                      longitude: '0.0',
+                      latitude: '0.0',
+                      radius: '5')
         end
 
         it 'respond with 200' do
@@ -154,6 +183,12 @@ describe 'Flags API', type: :request do
         it 'responds with 404' do
           subject
           expect(response.status).to be 404
+        end
+
+        it 'responds with not found error' do
+          subject
+          expect(response_body['errors']).to eq([{ 'id' => code,
+                                                   'title' => 'not found' }])
         end
       end
     end

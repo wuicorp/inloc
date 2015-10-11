@@ -3,38 +3,40 @@ module Api
     class FlagsController < ApiController
       def index
         with_valid_search_parameters do |longitude, latitude|
-          flags = flags_map.find_flags_by_position(longitude, latitude)
+          flags = Cell.at(longitude, latitude).flags
           render json: flags,
                  status: 200
         end
       end
 
       def create
-        flags_map.add_flag(flag_params)
-        if flags_map.save
-          render json: flag_params, status: 201
+        @flag = Flag.create(flag_params)
+        if @flag.valid?
+          render json: @flag, status: 201
         else
-          render json: { errors: flags_map.errors.as_json }, status: 422
+          render json: ErrorSerializer.serialize(@flag.errors), status: 422
         end
       end
 
       def destroy
-        if flags_map.remove_flag(params[:id])
+        if current_flag.present?
+          current_flag.destroy
           render json: {}, status: 200
         else
-          render json: { detail: 'not found' }, status: 404
+          render json: { errors: [{ id: params[:code], title: 'not found' }] },
+                 status: 404
         end
       end
 
       private
 
-      def flags_map
-        @flags_map ||=
-          FlagsMap.find_or_create_by(application_id: current_application_id)
+      def current_flag
+        @flag ||= Flag.for_application_id(current_application_id).find_by(code: params[:code])
       end
 
       def flag_params
-        params.permit(:id, :latitude, :longitude, :radius)
+        params.permit(:code, :latitude, :longitude, :radius)
+          .merge(application_id: current_application_id)
       end
 
       def with_valid_search_parameters

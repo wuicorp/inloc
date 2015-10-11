@@ -1,3 +1,3 @@
 class FlagSerializer < ActiveModel::Serializer
-  attributes :id
+  attributes :code, :longitude, :latitude, :radius
 end

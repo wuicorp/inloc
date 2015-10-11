@@ -1,16 +1,35 @@
 class Flag
   include Mongoid::Document
 
-  field :id, type: String
+  field :application_id, type: String
+  field :code, type: String
+  field :longitude, type: BigDecimal
+  field :latitude, type: BigDecimal
+  field :radius, type: Integer
 
-  belongs_to :flags_map
   has_and_belongs_to_many :cells
 
-  before_destroy :destroy_related_cells
+  before_save :detach_cells
+  after_save :attach_cells
+  before_destroy :detach_cells
 
-  def destroy_related_cells
-    cells.each do |cell|
-      cell.destroy if cell.flags.count == 1
+  validates_uniqueness_of :code, scope: :application_id
+  validates_numericality_of :longitude, :latitude, :radius
+  validates_presence_of :application_id, :code, :longitude, :latitude, :radius
+
+  scope :for_application_id, -> id { where(application_id: id) }
+
+  def detach_cells
+    cells.each { |c|
+      c.destroy if c.flags.count == 1
+    }
+
+    cells.clear
+  end
+
+  def attach_cells
+    Cell.cells_for(longitude, latitude, radius) do |cell|
+      cells << cell
     end
   end
 end
