@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-ruby '2.2.0'
+ruby '2.2.3'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 gem 'rails', '4.2.1'
@@ -34,11 +34,13 @@ gem 'sdoc', '~> 0.4.0', group: :doc
 # gem 'capistrano-rails', group: :development
 
 gem 'puma', '~> 2.11.3'
-gem 'mongoid', '~> 4.0.2'
+gem 'mongoid', '~> 5.0.0'
 gem 'doorkeeper-mongodb', git: 'https://github.com/doorkeeper-gem/doorkeeper-mongodb.git'
 gem 'rollbar', '~> 1.5.3'
 
 gem 'rails_12factor', group: :production
+
+gem 'active_model_serializers', git: 'https://github.com/rails-api/active_model_serializers.git'
 
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console

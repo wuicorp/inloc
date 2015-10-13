@@ -6,7 +6,7 @@ module Api
       skip_before_filter :verify_authenticity_token
 
       def current_application_id
-        @current_application_id ||= doorkeeper_token.application_id
+        @current_application_id ||= doorkeeper_token.application_id.to_s
       end
     end
   end
