@@ -7,7 +7,7 @@ module Api
             render json: current_cell.flags,
                    status: 200
           else
-            render json: { errors: [{ id: id, title: 'not found' }] },
+            render json: { errors: [{ id: 'cell', title: 'not found' }] },
                    status: 404
           end
         end
