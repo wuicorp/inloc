@@ -155,23 +155,19 @@ describe 'Flags API', type: :request do
   end
 
   describe 'DELETE /flags/:id' do
-    let(:code) { 'flag-code' }
-
-    subject { delete "/api/v1/flags/#{code}", {}, auth_headers }
+    subject { delete "/api/v1/flags/#{id}", {}, auth_headers }
 
     context 'with existing flag' do
-      let(:flags_map) do
-        FlagsMap.find_or_create_by(application_id: access_token.application_id)
-      end
-
       context 'with existing flag' do
-        before do
+        let(:flag) do
           Flag.create(application_id: access_token.application_id,
-                      code: code,
+                      code: 'flag_code',
                       longitude: '0.0',
                       latitude: '0.0',
                       radius: '5')
         end
+
+        let(:id) { flag.id }
 
         it 'respond with 200' do
           subject
@@ -180,6 +176,8 @@ describe 'Flags API', type: :request do
       end
 
       context 'with unexisting flag' do
+        let(:id) { 'whatever' }
+
         it 'responds with 404' do
           subject
           expect(response.status).to be 404
@@ -187,7 +185,7 @@ describe 'Flags API', type: :request do
 
         it 'responds with not found error' do
           subject
-          expect(response_body['errors']).to eq([{ 'id' => code,
+          expect(response_body['errors']).to eq([{ 'id' => id,
                                                    'title' => 'not found' }])
         end
       end

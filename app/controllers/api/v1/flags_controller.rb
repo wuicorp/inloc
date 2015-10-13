@@ -3,9 +3,13 @@ module Api
     class FlagsController < ApiController
       def index
         with_valid_search_parameters do |longitude, latitude|
-          flags = Cell.at(longitude, latitude).flags
-          render json: flags,
-                 status: 200
+          if current_cell.present?
+            render json: current_cell.flags,
+                   status: 200
+          else
+            render json: { errors: [{ id: params[:code], title: 'not found' }] },
+                   status: 404
+          end
         end
       end
 
@@ -23,7 +27,7 @@ module Api
           current_flag.destroy
           render json: {}, status: 200
         else
-          render json: { errors: [{ id: params[:code], title: 'not found' }] },
+          render json: { errors: [{ id: params[:id], title: 'not found' }] },
                  status: 404
         end
       end
@@ -31,7 +35,11 @@ module Api
       private
 
       def current_flag
-        @flag ||= Flag.for_application_id(current_application_id).find_by(code: params[:code])
+        @flag ||= Flag.for_application_id(current_application_id).find_by(id: params[:id])
+      end
+
+      def current_cell
+        @current_cell ||= Cell.at(longitude, latitude)
       end
 
       def flag_params
