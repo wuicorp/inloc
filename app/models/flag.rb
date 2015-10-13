@@ -2,7 +2,6 @@ class Flag
   include Mongoid::Document
 
   field :application_id, type: String
-  field :code, type: String
   field :longitude, type: BigDecimal
   field :latitude, type: BigDecimal
   field :radius, type: Integer
@@ -13,9 +12,8 @@ class Flag
   after_save :attach_cells
   before_destroy :detach_cells
 
-  validates_uniqueness_of :code, scope: :application_id
   validates_numericality_of :longitude, :latitude, :radius
-  validates_presence_of :application_id, :code, :longitude, :latitude, :radius
+  validates_presence_of :application_id, :longitude, :latitude, :radius
 
   scope :for_application_id, -> id { where(application_id: id) }
 

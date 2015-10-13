@@ -11,7 +11,6 @@ describe 'Flags API', type: :request do
     let(:flag1) do
       Flag.create(
         application_id: access_token.application_id,
-        code: '1',
         longitude: '0.0',
         latitude: '0.0',
         radius: '5'
@@ -21,7 +20,6 @@ describe 'Flags API', type: :request do
     let(:flag2) do
       Flag.create(
         application_id: access_token.application_id,
-        code: '2',
         longitude: '0.000045',
         latitude: '0.0',
         radius: '5'
@@ -57,7 +55,6 @@ describe 'Flags API', type: :request do
                    { 'id' => flag1.id.to_s,
                      'type' => 'flags',
                      'attributes' => {
-                       'code' => flag1.code,
                        'longitude' => flag1.longitude.to_s,
                        'latitude' => flag1.latitude.to_s,
                        'radius' => flag1.radius
@@ -66,7 +63,6 @@ describe 'Flags API', type: :request do
                    { 'id' => flag2.id.to_s,
                      'type' => 'flags',
                      'attributes' => {
-                       'code' => flag2.code,
                        'longitude' => flag2.longitude.to_s,
                        'latitude' => flag2.latitude.to_s,
                        'radius' => flag2.radius
@@ -86,21 +82,19 @@ describe 'Flags API', type: :request do
   end
 
   describe 'POST /flags' do
-    let(:code) { 'flag-code' }
     let(:longitude) { '0.0' }
     let(:latitude) { '0.0' }
     let(:radius) { 10 }
 
     let(:params) do
-      { code: code,
-        longitude: longitude,
+      { longitude: longitude,
         latitude: latitude,
         radius: radius }
     end
 
     subject { post '/api/v1/flags', params, auth_headers }
 
-    shared_examples 'adds the flag' do
+    context 'with valid attributes' do
       before { subject }
 
       it 'responds with 201' do
@@ -112,28 +106,7 @@ describe 'Flags API', type: :request do
       end
 
       it 'adds the flag' do
-        expect(Flag.last.code).to eq code
-      end
-    end
-
-    context 'with unexisting flag' do
-      it_behaves_like 'adds the flag'
-    end
-
-    context 'with existing flag' do
-      before do
-        Flag.create(params.merge(application_id: access_token.application_id))
-        subject
-      end
-
-      it 'respond with 422' do
-        expect(response.status).to eq 422
-      end
-
-      it 'responds with errored fields' do
-        expect(response_body['errors'])
-          .to eq([{ 'id' => 'code',
-                    'title' => 'Code is already taken' }])
+        expect(Flag.count).to eq 1
       end
     end
 
@@ -141,7 +114,7 @@ describe 'Flags API', type: :request do
       let(:longitude) { 'aaa' }
 
       before { subject }
-      
+
       it 'respond with 422' do
         expect(response.status).to eq 422
       end
@@ -161,7 +134,6 @@ describe 'Flags API', type: :request do
       context 'with existing flag' do
         let(:flag) do
           Flag.create(application_id: access_token.application_id,
-                      code: 'flag_code',
                       longitude: '0.0',
                       latitude: '0.0',
                       radius: '5')

@@ -7,7 +7,7 @@ module Api
             render json: current_cell.flags,
                    status: 200
           else
-            render json: { errors: [{ id: params[:code], title: 'not found' }] },
+            render json: { errors: [{ id: id, title: 'not found' }] },
                    status: 404
           end
         end
@@ -27,15 +27,19 @@ module Api
           current_flag.destroy
           render json: {}, status: 200
         else
-          render json: { errors: [{ id: params[:id], title: 'not found' }] },
+          render json: { errors: [{ id: id, title: 'not found' }] },
                  status: 404
         end
       end
 
       private
 
+      def id
+        @id ||= params[:id]
+      end
+
       def current_flag
-        @flag ||= Flag.for_application_id(current_application_id).find_by(id: params[:id])
+        @flag ||= Flag.for_application_id(current_application_id).find_by(id: id)
       end
 
       def current_cell
@@ -43,7 +47,7 @@ module Api
       end
 
       def flag_params
-        params.permit(:code, :latitude, :longitude, :radius)
+        params.permit(:latitude, :longitude, :radius)
           .merge(application_id: current_application_id)
       end
 

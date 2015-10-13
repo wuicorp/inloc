@@ -1,14 +1,12 @@
 require 'rails_helper'
 
 describe Flag do
-  let(:code) { '1' }
   let(:latitude) { '0.0' }
   let(:longitude) { '0.0' }
   let(:radius) { '5' }
 
   let(:attributes) do
     { application_id: 'foo',
-      code: code,
       latitude: latitude,
       longitude: longitude,
       radius: radius }
@@ -40,7 +38,7 @@ describe Flag do
     end
 
     context 'with more flags on related cells' do
-      let(:other_flag) { Flag.create(attributes.merge(code: 'other-flag')) }
+      let(:other_flag) { Flag.create(attributes) }
       let(:cell_count) { other_flag.cells.count }
 
       before do
