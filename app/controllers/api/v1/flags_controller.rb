@@ -22,13 +22,20 @@ module Api
         end
       end
 
+      def update
+        with_current_flag do
+          if current_flag.update_attributes(flag_params)
+            render json: @flag, status: 200
+          else
+            render json: ErrorSerializer.serialize(@flag.errors), status: 422
+          end
+        end
+      end
+
       def destroy
-        if current_flag.present?
+        with_current_flag do
           current_flag.destroy
           render json: {}, status: 200
-        else
-          render json: { errors: [{ id: id, title: 'not found' }] },
-                 status: 404
         end
       end
 
@@ -49,6 +56,15 @@ module Api
       def flag_params
         params.permit(:latitude, :longitude, :radius)
           .merge(application_id: current_application_id)
+      end
+
+      def with_current_flag
+        if current_flag.present?
+          yield
+        else
+          render json: { errors: [{ id: id, title: 'not found' }] },
+                 status: 404
+        end
       end
 
       def with_valid_search_parameters
