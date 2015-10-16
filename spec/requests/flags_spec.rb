@@ -127,6 +127,73 @@ describe 'Flags API', type: :request do
     end
   end
 
+  describe 'PUT /flags/:id' do
+    let(:longitude) { '0.0' }
+    let(:latitude) { '0.0' }
+    let(:radius) { 10 }
+
+    let(:params) do
+      { longitude: longitude,
+        latitude: latitude,
+        radius: radius }
+    end
+
+    subject { put "/api/v1/flags/#{id}", params, auth_headers }
+
+    context 'without existing flag' do
+      let(:id) { 'some-unexisting' }
+
+      before { subject }
+
+      it 'is expected to respond with 404' do
+        expect(response.status).to eq 404
+      end
+    end
+
+    context 'with existing flag' do
+      let(:old_latitude) { '0.2' }
+
+      let(:flag) do
+        Flag.create(
+          params.merge(application_id: access_token.application_id,
+                       latitude: old_latitude)
+        )
+      end
+
+      let(:id) { flag.id }
+
+      before { subject }
+
+      context 'with valid attributes' do
+        it 'responds with 200' do
+          expect(response.status).to eq 200
+        end
+
+        it 'responds with flag attributes' do
+          expect(response_body['data']['attributes']).to eq params.stringify_keys
+        end
+
+        it 'updates the flag' do
+          expect(Flag.last.latitude).to eq latitude.to_f
+        end
+      end
+
+      context 'with invalid attributes' do
+        let(:latitude) { 'xxx' }
+
+        it 'respond with 422' do
+          expect(response.status).to eq 422
+        end
+
+        it 'responds with errored fields' do
+          expect(response_body['errors'])
+            .to eq([{ 'id' => 'latitude',
+                      'title' => 'Latitude is not a number' }])
+        end
+      end
+    end
+  end
+
   describe 'DELETE /flags/:id' do
     subject { delete "/api/v1/flags/#{id}", {}, auth_headers }
 
