@@ -58,5 +58,5 @@ group :test do
   gem 'rspec-its', '~> 1.2.0'
   gem 'shoulda-matchers', '~> 2.8.0'
   gem 'factory_girl', '~> 4.5.0'
-  gem 'database_cleaner', '~> 1.4.1'
+  gem 'database_cleaner', '~> 1.5.1'
 end

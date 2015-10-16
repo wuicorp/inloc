@@ -21,18 +21,6 @@ require 'rspec/rails'
 Dir[Rails.root.join('spec/support/**/*.rb')].each { |f| require f }
 Dir[Rails.root.join('spec/factories/**/*.rb')].each { |f| require f }
 
-# HACK: To make database_cleaner work with mongoid 5
-module Mongo
-  class Collection
-    class View
-      def remove_all
-        remove(0)
-      end
-    end
-  end
-end
-# End HACK
-
 RSpec.configure do |config|
   # RSpec Rails can automatically mix in different behaviours to your tests
   # based on their file location, for example enabling you to call `get` and
