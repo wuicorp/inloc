@@ -3,7 +3,7 @@ require 'rails_helper'
 describe Flag do
   let(:latitude) { '0.0' }
   let(:longitude) { '0.0' }
-  let(:radius) { '5' }
+  let(:radius) { '10' }
 
   let(:attributes) do
     { application_id: 'foo',
@@ -17,12 +17,10 @@ describe Flag do
 
     it 'attach expected cells' do
       expect(subject.cells.pluck(:longitude))
-        .to eq ['-0.000045', '-0.000045', '-0.000045', '0.0',
-                '0.0', '0.0', '0.000045', '0.000045', '0.000045']
+        .to eq ["-0.00009", "-0.00009", "-0.00009", "0.0", "0.0", "0.0", "0.00009", "0.00009", "0.00009"]
 
       expect(subject.cells.pluck(:latitude))
-        .to eq ['-0.0000425', '0.0', '0.0000425', '-0.0000425',
-                '0.0', '0.0000425', '-0.0000425', '0.0', '0.0000425']
+        .to eq ["-0.000085", "0.0", "0.000085", "-0.000085", "0.0", "0.000085", "-0.000085", "0.0", "0.000085"]
     end
   end
 
