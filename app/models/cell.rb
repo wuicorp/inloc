@@ -55,11 +55,11 @@ class Cell
     end
 
     def bitx
-      @bitx ||= max_longitude / 4_000_000
+      @bitx ||= max_longitude / 2_000_000
     end
 
     def bity
-      @bity ||= max_latitude / 2_000_000
+      @bity ||= max_latitude / 1_000_000
     end
 
     def max_longitude
