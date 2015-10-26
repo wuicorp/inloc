@@ -1,4 +1,6 @@
 Rails.application.routes.draw do
+  mount ResqueWeb::Engine => "/resque_web"
+
   root 'welcome#index'
 
   scope :api do
