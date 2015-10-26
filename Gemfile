@@ -44,6 +44,7 @@ gem 'active_model_serializers', git: 'https://github.com/rails-api/active_model_
 
 gem 'resque'
 gem 'resque-web', require: 'resque_web'
+gem 'redis'
 
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
