@@ -14,8 +14,10 @@ module Api
       end
 
       def create
-        @flag = Flag.create(flag_params)
+        @flag = Flag.new(flag_params)
+
         if @flag.valid?
+          Resque.enqueue(CreateFlagJob, flag_params)
           render json: @flag, status: 201
         else
           render json: ErrorSerializer.serialize(@flag.errors), status: 422
