@@ -26,7 +26,10 @@ module Api
 
       def update
         with_current_flag do
-          if current_flag.update_attributes(flag_params)
+          current_flag.attributes = flag_params
+
+          if current_flag.valid?
+            Resque.enqueue(UpdateFlagJob, current_flag.id, flag_params)
             render json: @flag, status: 200
           else
             render json: ErrorSerializer.serialize(@flag.errors), status: 422
