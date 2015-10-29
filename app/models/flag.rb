@@ -1,10 +1,4 @@
-class Flag
-  include Mongoid::Document
-
-  field :application_id, type: String
-  field :longitude, type: BigDecimal
-  field :latitude, type: BigDecimal
-  field :radius, type: Integer
+class Flag < ActiveRecord::Base
 
   has_and_belongs_to_many :cells
 

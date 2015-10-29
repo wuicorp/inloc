@@ -1,9 +1,4 @@
-class Cell
-  include Mongoid::Document
-
-  field :longitude, type: BigDecimal
-  field :latitude, type: BigDecimal
-
+class Cell < ActiveRecord::Base
   has_and_belongs_to_many :flags
 
   class << self

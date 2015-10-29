@@ -14,10 +14,10 @@ module Api
       end
 
       def create
-        @flag = Flag.new(flag_params)
+        @flag = Flag.new(flag_params_for_create)
 
         if @flag.valid?
-          Resque.enqueue(CreateFlagJob, flag_params)
+          Resque.enqueue(CreateFlagJob, flag_params_for_create)
           render json: @flag, status: 201
         else
           render json: ErrorSerializer.serialize(@flag.errors), status: 422
@@ -58,9 +58,13 @@ module Api
         @current_cell ||= Cell.at(longitude, latitude)
       end
 
+      def flag_params_for_create
+        @flag_params_for_create ||=
+          flag_params.merge(application_id: current_application_id)
+      end
+
       def flag_params
-        params.permit(:latitude, :longitude, :radius)
-          .merge(application_id: current_application_id)
+        @flag_parames ||= params.permit(:latitude, :longitude, :radius)
       end
 
       def with_current_flag

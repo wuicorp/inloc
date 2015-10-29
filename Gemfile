@@ -34,8 +34,11 @@ gem 'sdoc', '~> 0.4.0', group: :doc
 # gem 'capistrano-rails', group: :development
 
 gem 'puma', '~> 2.11.3'
-gem 'mongoid', '~> 5.0.0'
-gem 'doorkeeper-mongodb', git: 'https://github.com/doorkeeper-gem/doorkeeper-mongodb.git'
+gem 'pg', group: :production
+gem 'rails_12factor', group: :production
+
+gem 'sqlite3', group: [:development, :test]
+gem 'doorkeeper'
 gem 'rollbar', '~> 1.5.3'
 
 gem 'rails_12factor', group: :production
