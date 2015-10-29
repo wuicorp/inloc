@@ -95,7 +95,16 @@ describe 'Flags API', type: :request do
     subject { post '/api/v1/flags', params, auth_headers }
 
     context 'with valid attributes' do
-      before { subject }
+      let(:params_for_job) do
+        params.merge(application_id: access_token.application_id.to_s).tap do |p|
+          p[:radius] = p[:radius].to_s
+        end
+      end
+
+      before do
+        expect(Resque).to receive(:enqueue).with(CreateFlagJob, params_for_job)
+        subject
+      end
 
       it 'responds with 201' do
         expect(response.status).to eq 201
@@ -103,10 +112,6 @@ describe 'Flags API', type: :request do
 
       it 'responds with flag attributes' do
         expect(response_body['data']['attributes']).to eq params.stringify_keys
-      end
-
-      it 'adds the flag' do
-        expect(Flag.count).to eq 1
       end
     end
 
@@ -162,9 +167,18 @@ describe 'Flags API', type: :request do
 
       let(:id) { flag.id }
 
-      before { subject }
+      let(:params_for_job) do
+        params.dup.tap do |p|
+          p[:radius] = p[:radius].to_s
+        end
+      end
 
       context 'with valid attributes' do
+        before do
+          expect(Resque).to receive(:enqueue).with(UpdateFlagJob, id, params_for_job)
+          subject
+        end
+
         it 'responds with 200' do
           expect(response.status).to eq 200
         end
@@ -172,14 +186,12 @@ describe 'Flags API', type: :request do
         it 'responds with flag attributes' do
           expect(response_body['data']['attributes']).to eq params.stringify_keys
         end
-
-        it 'updates the flag' do
-          expect(Flag.last.latitude).to eq latitude.to_f
-        end
       end
 
       context 'with invalid attributes' do
         let(:latitude) { 'xxx' }
+
+        before { subject }
 
         it 'respond with 422' do
           expect(response.status).to eq 422

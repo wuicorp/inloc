@@ -16,10 +16,10 @@ describe Flag do
     subject { described_class.create(attributes) }
 
     it 'attach expected cells' do
-      expect(subject.cells.pluck(:longitude))
+      expect(subject.cells.pluck(:longitude).map { |l| l.to_s })
         .to eq ["-0.00009", "-0.00009", "-0.00009", "0.0", "0.0", "0.0", "0.00009", "0.00009", "0.00009"]
 
-      expect(subject.cells.pluck(:latitude))
+      expect(subject.cells.pluck(:latitude).map { |l| l.to_s })
         .to eq ["-0.000085", "0.0", "0.000085", "-0.000085", "0.0", "0.000085", "-0.000085", "0.0", "0.000085"]
     end
   end
